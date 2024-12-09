@@ -6,7 +6,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 const port = process.env.PORT || 8080;
 
-const webhookDomain = "";
+const webhookDomain = "https://redcard-bot.onrender.com";
 
 bot.start(async (ctx) => {
   await ctx.reply("Welcome to red cards", {
