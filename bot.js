@@ -34,7 +34,7 @@ bot.launch({
     // Port to listen on; e.g.: 8080
     port: port,
 
-    secretToken: crypto.randomBytes(64).toString("hex"),
+    secretToken: crypto.randomUUID(),
   },
 });
 
