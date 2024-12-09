@@ -1,6 +1,5 @@
 {
   "name": "redcard",
-  "packageManager": "yarn@4.5.1",
   "type": "module",
   "scripts": {
     "start": "node bot.js"
