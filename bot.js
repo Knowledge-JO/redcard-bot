@@ -76,6 +76,12 @@ depositScene.on("text", async (ctx) => {
   const state = ctx.session.currentState;
   const asset = ctx.session.asset;
 
+  const text = ctx.message.text;
+
+  if (text == "end") {
+    ctx.scene.leave();
+  }
+
   if (state == "create") {
     const amount = parseFloat(ctx.message.text);
     if (isNaN(amount) || amount <= 0) {
