@@ -80,6 +80,7 @@ depositScene.on("text", async (ctx) => {
 
   if (text == "end") {
     ctx.scene.leave();
+    return;
   }
 
   if (state == "create") {
