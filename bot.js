@@ -33,10 +33,15 @@ const port = process.env.PORT || 8080;
 
 const webhookDomain = "https://redcard-bot.onrender.com";
 
+bot.telegram.setMyCommands([
+  { command: "start", description: "mini app button" },
+  { command: "deposit", description: "Deposit funds" },
+]);
+
 bot.start(async (ctx) => {
   await ctx.reply("Welcome to red cards", {
     reply_markup: {
-      keyboard: [
+      inline_keyboard: [
         [
           {
             text: "🧧Redcards",
@@ -81,6 +86,8 @@ depositScene.on("text", async (ctx) => {
       ctx.scene.state = null;
       ctx.scene.leave();
     }
+  } else {
+    ctx.reply("Please select an asset");
   }
 });
 
@@ -91,19 +98,19 @@ depositScene.on("callback_query", (ctx) => {
   ctx.session.currentState = "create";
 });
 
-// bot.launch();
+bot.launch();
 
-bot.launch({
-  webhook: {
-    // Public domain for webhook; e.g.: example.com
-    domain: webhookDomain,
+// bot.launch({
+//   webhook: {
+//     // Public domain for webhook; e.g.: example.com
+//     domain: webhookDomain,
 
-    // Port to listen on; e.g.: 8080
-    port: port,
+//     // Port to listen on; e.g.: 8080
+//     port: port,
 
-    secretToken: crypto.randomUUID(),
-  },
-});
+//     secretToken: crypto.randomUUID(),
+//   },
+// });
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
