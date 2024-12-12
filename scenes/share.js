@@ -40,7 +40,14 @@ function handleShare(bot, shareScene) {
   });
 
   shareScene.on("text", async (ctx) => {
-    const amount = parseInt(ctx.message.text);
+    const text = ctx.message.text;
+    const amount = parseInt(text);
+
+    if (text == "end") {
+      ctx.reply("cancelled.");
+      ctx.scene.leave();
+      return;
+    }
 
     if (isNaN(amount) || amount <= 0) {
       ctx.reply("Please enter a valid number");
@@ -63,11 +70,6 @@ function handleShare(bot, shareScene) {
           .catch((error) => ctx.reply(`Error sharing tickets: ${error}`));
       }
     }
-  });
-
-  shareScene.command("end", (ctx) => {
-    ctx.reply("Cancelled");
-    ctx.scene.leave();
   });
 
   shareScene.on("callback_query", (ctx) => {

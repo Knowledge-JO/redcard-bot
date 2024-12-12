@@ -26,6 +26,7 @@ function handleDeposit(bot, depositScene) {
     const text = ctx.message.text;
 
     if (text == "end") {
+      ctx.reply("cancelled.");
       ctx.scene.leave();
       return;
     }
