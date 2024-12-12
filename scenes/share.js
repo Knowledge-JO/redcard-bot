@@ -9,9 +9,9 @@ function handleShare(bot, shareScene) {
     try {
       const checks = await cryptoClient.getChecks({ status: "active" });
       ctx.session.totalChecks = checks.length;
-      let checkLists = `Total checks available: ${checks.length}`;
+      let checkLists = `Total checks available: ${checks.length}\n`;
       for (let i = 0; i < checks.length; i++) {
-        checkLists += `\n\n${i + 1}. ${checks[i].botCheckUrl}`;
+        checkLists += `\n${i + 1}. ${checks[i].botCheckUrl}`;
       }
       if (checks.length > 0) {
         checkLists += `\n\n<strong>Reply with how many tickets you will like to share or click share all to share all.</strong>`;
