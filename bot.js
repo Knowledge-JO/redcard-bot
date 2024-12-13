@@ -22,6 +22,12 @@ const shareScene = new BaseScene("share");
 
 const stage = new Stage([depositScene, shareScene]);
 
+bot.use((ctx, next) => {
+  if (ctx.chat.type == "private") {
+    next();
+  }
+});
+
 bot.use(session());
 bot.use(stage.middleware());
 
