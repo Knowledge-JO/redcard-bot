@@ -55,6 +55,11 @@ async function balances() {
 
 bot.start(async (ctx) => {
   try {
+    const text = ctx.message.text.split(" ");
+    if (text[1] == "deposit") {
+      ctx.scene.enter("deposit");
+      return;
+    }
     const { ton, usdt, btc } = await balances();
     await ctx.reply(
       `<strong>🧧Welcome to red cards</strong>
