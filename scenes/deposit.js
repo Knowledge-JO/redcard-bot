@@ -1,9 +1,9 @@
 import { cryptoClient } from "../bot.js";
-import { isAdmin } from "../utils.js";
+import { isCreator } from "../utils.js";
 
 function handleDeposit(bot, depositScene) {
   bot.command("deposit", async (ctx) => {
-    if (!(await isAdmin(ctx))) {
+    if (!(await isCreator(ctx))) {
       return ctx.reply("❌ Only admins can use this command!");
     }
     ctx.scene.enter("deposit");

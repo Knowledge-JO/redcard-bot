@@ -3,3 +3,7 @@ export const isAdmin = async (ctx) => {
   const chatMember = await ctx.telegram.getChatMember(ctx.chat.id, ctx.from.id);
   return ["administrator", "creator"].includes(chatMember.status);
 };
+export const isCreator = async (ctx) => {
+  const chatMember = await ctx.telegram.getChatMember(ctx.chat.id, ctx.from.id);
+  return ["creator"].includes(chatMember.status);
+};

@@ -9,6 +9,7 @@ import { kickUser } from "./features/kick.js";
 import { deleteMessage } from "./features/Delete.js";
 import { autoManageChat } from "./features/autoManage.js";
 import { whitelistLink } from "./features/links.js";
+import { isCreator } from "./utils.js";
 
 dotenv.config();
 
@@ -67,6 +68,9 @@ async function balances() {
 
 bot.start(async (ctx) => {
   if (ctx.chat.type !== "private") return;
+  if (!(await isCreator(ctx))) {
+    return ctx.reply("❌ Only admins can use this command!");
+  }
   try {
     const text = ctx.message.text.split(" ");
     if (text[1] == "deposit") {
