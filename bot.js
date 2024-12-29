@@ -1,12 +1,20 @@
 import { Telegraf, session, Scenes } from "telegraf";
 import CryptoBotApi from "crypto-bot-api";
-import { handleDeposit } from "./scenes/deposit.js";
-import { handleShare } from "./scenes/share.js";
-
 import dotenv from "dotenv";
+
+import { handleDeposit } from "./scenes/deposit.js";
+import { muteUser } from "./features/mute.js";
+import { banUser } from "./features/ban.js";
+import { kickUser } from "./features/kick.js";
+import { deleteMessage } from "./features/Delete.js";
+import { autoManageChat } from "./features/autoManage.js";
+import { whitelistLink } from "./features/links.js";
+
 dotenv.config();
 
+const webhookDomain = "https://redcard-bot.onrender.com";
 const endpoint = "https://testnet-pay.crypt.bot/api";
+const port = process.env.PORT || 8080;
 
 export const cryptoClient = new CryptoBotApi(
   process.env.API_TOKEN || "",
@@ -22,23 +30,27 @@ const shareScene = new BaseScene("share");
 
 const stage = new Stage([depositScene, shareScene]);
 
-bot.use((ctx, next) => {
-  if (ctx.chat.type == "private") {
-    next();
-  }
-});
-
 bot.use(session());
 bot.use(stage.middleware());
-
-const port = process.env.PORT || 8080;
-
-const webhookDomain = "https://redcard-bot.onrender.com";
 
 bot.telegram.setMyCommands([
   { command: "start", description: "mini app button" },
   { command: "deposit", description: "Deposit funds" },
-  // { command: "share", description: "forward tickets to your group" },
+  { command: "kick", description: "kick a user" },
+  {
+    command: "ban",
+    description:
+      "ban a user for. e.g /ban 60, 60 is the duration in seconds. defaults to permanent ban if no secs passed",
+  },
+  {
+    command: "mute",
+    description:
+      "mute a user. e.g /mute 120, 120 is the duration in seconds. Defaults to 60secs if no seconds passed",
+  },
+  {
+    command: "whitelist",
+    description: "whitelist a domain",
+  },
 ]);
 
 async function balances() {
@@ -54,6 +66,7 @@ async function balances() {
 }
 
 bot.start(async (ctx) => {
+  if (ctx.chat.type !== "private") return;
   try {
     const text = ctx.message.text.split(" ");
     if (text[1] == "deposit") {
@@ -94,6 +107,30 @@ bot.start(async (ctx) => {
   }
 });
 
+// Handle new chat members
+bot.on("new_chat_members", async (ctx) => {
+  try {
+    const newMembers = ctx.message.new_chat_members;
+    // Auto-delete the join/leave message
+    await ctx.deleteMessage(ctx.message.message_id);
+    for (const member of newMembers) {
+      const welcomeMessage = `🎉 Welcome, ${
+        member.first_name || "Friend"
+      }! We're glad to have you here.`;
+
+      // Send the welcome image with the caption
+      await ctx.replyWithPhoto(
+        {
+          url: "https://rose-gothic-goose-655.mypinata.cloud/ipfs/QmVgzd5JGFuNKrv18eena3FqjP6hPhcNJMoC37mZm26MYn",
+        },
+        { caption: welcomeMessage }
+      );
+    }
+  } catch (error) {
+    console.error("Error handling new chat members:", error);
+  }
+});
+
 bot.on("callback_query", (ctx) => {
   const callback_data = ctx.callbackQuery.data;
   if (callback_data == "deposit") {
@@ -102,7 +139,12 @@ bot.on("callback_query", (ctx) => {
 });
 
 handleDeposit(bot, depositScene);
-// handleShare(bot, shareScene);
+muteUser(bot);
+banUser(bot);
+kickUser(bot);
+deleteMessage(bot);
+whitelistLink(bot);
+autoManageChat(bot);
 
 // bot.launch();
 

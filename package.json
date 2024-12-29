@@ -5,6 +5,7 @@
     "start": "node bot.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.47.10",
     "crypto-bot-api": "^0.3.3",
     "dotenv": "^16.4.7",
     "telegraf": "^4.16.3"
