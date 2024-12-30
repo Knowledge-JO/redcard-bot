@@ -17,6 +17,8 @@ import {
 } from "./supabaseAPI.js";
 import { setWelcomeImg } from "./features/setWelcomeImage.js";
 import { setKwdRply } from "./features/setKeywordReplies.js";
+import { setAllowedLinks } from "./features/setAllowedLinks.js";
+import { setInappropriateWords } from "./features/setInappropriateWords.js";
 
 dotenv.config();
 
@@ -192,21 +194,23 @@ whitelistLink(bot);
 setWelcomeMsg(bot);
 setWelcomeImg(bot, setImageScene);
 setKwdRply(bot);
+setAllowedLinks(bot);
+setInappropriateWords(bot);
 autoManageChat(bot);
 
-// bot.launch();
+bot.launch();
 
-bot.launch({
-  webhook: {
-    // Public domain for webhook; e.g.: example.com
-    domain: webhookDomain,
+// bot.launch({
+//   webhook: {
+//     // Public domain for webhook; e.g.: example.com
+//     domain: webhookDomain,
 
-    // Port to listen on; e.g.: 8080
-    port: port,
+//     // Port to listen on; e.g.: 8080
+//     port: port,
 
-    secretToken: crypto.randomUUID(),
-  },
-});
+//     secretToken: crypto.randomUUID(),
+//   },
+// });
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));

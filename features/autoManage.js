@@ -1,15 +1,16 @@
+import { getTelegramDataByChatIdSingle } from "../supabaseAPI.js";
 import { autoReplyChat } from "./autoReply.js";
 import { autoCleanLinks } from "./links.js";
 
-const inappropriateKeywords = [
-  "badword1",
-  "badword2",
-  "badword3",
-  "free money",
-  "click here",
-  "buy now",
-  "promo",
-]; // Add your own inappropriate keywords
+// const inappropriateKeywords = [
+//   "badword1",
+//   "badword2",
+//   "badword3",
+//   "free money",
+//   "click here",
+//   "buy now",
+//   "promo",
+// ]; // Add your own inappropriate keywords
 
 // Memory to track duplicate messages
 const recentMessages = new Map();
@@ -32,6 +33,8 @@ export function autoManageChat(bot) {
     const userId = ctx.message.from.id;
     const chatId = ctx.chat.id;
 
+    const chatData = await getTelegramDataByChatIdSingle(chatId);
+    const inappropriateKeywords = chatData.inappropriateKeywords || [];
     // Check for inappropriate keywords
     if (inappropriateKeywords.some((word) => messageText.includes(word))) {
       try {

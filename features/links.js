@@ -1,6 +1,7 @@
+import { getTelegramDataByChatIdSingle } from "../supabaseAPI.js";
 import { isAdmin } from "../utils.js";
 
-const whitelistedLinks = ["example.com", "trusted-site.com"];
+// const whitelistedLinks = ["example.com", "trusted-site.com"];
 
 export async function autoCleanLinks(ctx) {
   const messageText = ctx.message.text.toLowerCase();
@@ -11,14 +12,20 @@ export async function autoCleanLinks(ctx) {
   const linkPattern = /(https?:\/\/)?(www\.)?\S+\.\S+/g;
   const linksInMessage = messageText.match(linkPattern);
 
-  console.log("Links in message:", linksInMessage);
+  const chatData = await getTelegramDataByChatIdSingle(chatId);
+
+  const whitelistedLinks = chatData.allowedLinks || [];
 
   if (linksInMessage) {
     let isAuthorized = false;
 
     // Check if the link is in the whitelist
     for (const link of linksInMessage) {
-      if (whitelistedLinks.includes(link)) {
+      if (
+        whitelistedLinks.some((whitelistedLink) =>
+          whitelistedLink.includes(link)
+        )
+      ) {
         isAuthorized = true;
       } else {
         isAuthorized = false;

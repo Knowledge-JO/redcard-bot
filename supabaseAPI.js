@@ -94,6 +94,46 @@ async function updateKeywordReplies(chatId, keywordReplies) {
   }
 }
 
+async function updateInappropiateWords(chatId, words) {
+  const data = await getTelegramDataByChatId(chatId);
+  const chatData = data ? data : [];
+
+  if (chatData.length > 0) {
+    const chat = chatData[0];
+    const inappropriateKeywords = chat.inappropriateKeywords
+      ? chat.inappropriateKeywords
+      : [];
+    const { error } = await supabase
+      .from("telegram")
+      .update({ inappropriateKeywords: [...inappropriateKeywords, ...words] })
+      .eq("chatId", chatId)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
+async function updateAllowedLinks(chatId, links) {
+  const data = await getTelegramDataByChatId(chatId);
+  const chatData = data ? data : [];
+
+  if (chatData.length > 0) {
+    const chat = chatData[0];
+    const allowedLinks = chat.allowedLinks ? chat.allowedLinks : [];
+    const { error } = await supabase
+      .from("telegram")
+      .update({ allowedLinks: [...allowedLinks, ...links] })
+      .eq("chatId", chatId)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
 export {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
@@ -101,4 +141,6 @@ export {
   updateWelcomeMessage,
   updateWelcomeImage,
   updateKeywordReplies,
+  updateInappropiateWords,
+  updateAllowedLinks,
 };

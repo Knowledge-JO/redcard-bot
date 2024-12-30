@@ -27,6 +27,7 @@ import { getTelegramDataByChatIdSingle } from "../supabaseAPI.js";
 export async function autoReplyChat(ctx) {
   const messageText = ctx.message.text.toLowerCase();
   const chatData = await getTelegramDataByChatIdSingle(ctx.chat.id);
+  if (!chatData.keywordReplies) return;
   const dataArray = chatData.keywordReplies.map(({ keyword, replyContent }) => [
     keyword,
     replyContent,
