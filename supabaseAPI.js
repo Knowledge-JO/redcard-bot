@@ -134,6 +134,76 @@ async function updateAllowedLinks(chatId, links) {
   }
 }
 
+async function removeLink(chatId, link) {
+  const data = await getTelegramDataByChatId(chatId);
+  const chatData = data ? data : [];
+
+  if (chatData.length > 0) {
+    const chat = chatData[0];
+    const allowedLinks = chat.allowedLinks ? chat.allowedLinks : [];
+    if (allowedLinks.length == 0) throw new Error("No links found");
+    const filtered = allowedLinks.filter((allowedLink) => allowedLink !== link);
+    const { error } = await supabase
+      .from("telegram")
+      .update({ allowedLinks: [...filtered] })
+      .eq("chatId", chatId)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
+async function removeInappropriateWord(chatId, word) {
+  const data = await getTelegramDataByChatId(chatId);
+  const chatData = data ? data : [];
+
+  if (chatData.length > 0) {
+    const chat = chatData[0];
+    const blacklistedWords = chat.inappropriateKeywords
+      ? chat.inappropriateKeywords
+      : [];
+    if (blacklistedWords.length == 0)
+      throw new Error("No blacklisted words found");
+    const filtered = blacklistedWords.filter(
+      (blacklistedWord) => blacklistedWord !== word
+    );
+    const { error } = await supabase
+      .from("telegram")
+      .update({ inappropriateKeywords: [...filtered] })
+      .eq("chatId", chatId)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
+async function removeKeywordReply(chatId, keyword) {
+  const data = await getTelegramDataByChatId(chatId);
+  const chatData = data ? data : [];
+
+  if (chatData.length > 0) {
+    const chat = chatData[0];
+    const keywordReplies = chat.keywordReplies ? chat.keywordReplies : [];
+    if (keywordReplies.length == 0) throw new Error("No keyword replies found");
+    const filtered = keywordReplies.filter(
+      (keywordReply) => keywordReply.keyword !== keyword
+    );
+    const { error } = await supabase
+      .from("telegram")
+      .update({ keywordReplies: [...filtered] })
+      .eq("chatId", chatId)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
 export {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
@@ -143,4 +213,7 @@ export {
   updateKeywordReplies,
   updateInappropiateWords,
   updateAllowedLinks,
+  removeInappropriateWord,
+  removeKeywordReply,
+  removeLink,
 };

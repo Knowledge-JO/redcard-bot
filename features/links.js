@@ -1,5 +1,4 @@
 import { getTelegramDataByChatIdSingle } from "../supabaseAPI.js";
-import { isAdmin } from "../utils.js";
 
 // const whitelistedLinks = ["example.com", "trusted-site.com"];
 
@@ -50,27 +49,4 @@ export async function autoCleanLinks(ctx) {
       }
     }
   }
-}
-
-export function whitelistLink(bot) {
-  // Whitelist a domain
-  bot.command("whitelist", async (ctx) => {
-    if (!(await isAdmin(ctx))) {
-      return ctx.reply("❌ Only admins can use this command!");
-    }
-
-    const args = ctx.message.text.split(" ");
-    const domain = args[1];
-
-    if (!domain) {
-      return ctx.reply("⚠️ Please specify the domain to whitelist.");
-    }
-
-    if (whitelistedLinks.includes(domain)) {
-      return ctx.reply(`✅ The domain "${domain}" is already whitelisted.`);
-    }
-
-    whitelistedLinks.push(domain);
-    ctx.reply(`✅ The domain "${domain}" has been added to the whitelist.`);
-  });
 }

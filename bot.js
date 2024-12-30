@@ -6,9 +6,13 @@ import { handleDeposit } from "./scenes/deposit.js";
 import { muteUser } from "./features/mute.js";
 import { banUser } from "./features/ban.js";
 import { kickUser } from "./features/kick.js";
-import { deleteMessage } from "./features/Delete.js";
+import {
+  deleteInappropriateWord,
+  deleteKeyword,
+  deleteLink,
+  deleteMessage,
+} from "./features/Delete.js";
 import { autoManageChat } from "./features/autoManage.js";
-import { whitelistLink } from "./features/links.js";
 import { setWelcomeMsg } from "./features/setWelcomeMessage.js";
 import {
   getTelegramDataByChatId,
@@ -19,6 +23,7 @@ import { setWelcomeImg } from "./features/setWelcomeImage.js";
 import { setKwdRply } from "./features/setKeywordReplies.js";
 import { setAllowedLinks } from "./features/setAllowedLinks.js";
 import { setInappropriateWords } from "./features/setInappropriateWords.js";
+import { botCommands } from "./commands.js";
 
 dotenv.config();
 
@@ -60,49 +65,7 @@ bot.use(async (ctx, next) => {
   }
 });
 
-bot.telegram.setMyCommands([
-  { command: "start", description: "mini app button" },
-  { command: "deposit", description: "Deposit funds" },
-  { command: "kick", description: "kick a user" },
-  {
-    command: "ban",
-    description:
-      "ban a user for. e.g /ban 60, 60 is the duration in seconds. defaults to permanent ban if no secs passed",
-  },
-  {
-    command: "mute",
-    description:
-      "mute a user. e.g /mute 120, 120 is the duration in seconds. Defaults to 60secs if no seconds passed",
-  },
-  {
-    command: "whitelist",
-    description: "whitelist a domain",
-  },
-  {
-    command: "setmessage",
-    description: "set welcome message",
-  },
-  {
-    command: "setimage",
-    description: "set welcome image",
-  },
-  {
-    command: "setkeyword",
-    description: "set keyword and reply content",
-  },
-]);
-
-async function balances() {
-  const tonBalance = await cryptoClient.getBalance("TON");
-  const usdtBalance = await cryptoClient.getBalance("USDT");
-  const btcBalance = await cryptoClient.getBalance("BTC");
-
-  return {
-    ton: tonBalance.available,
-    usdt: usdtBalance.available,
-    btc: btcBalance.available,
-  };
-}
+botCommands(bot);
 
 bot.start(async (ctx) => {
   if (ctx.chat.type !== "private") return;
@@ -185,32 +148,46 @@ bot.on("callback_query", (ctx) => {
   }
 });
 
+async function balances() {
+  const tonBalance = await cryptoClient.getBalance("TON");
+  const usdtBalance = await cryptoClient.getBalance("USDT");
+  const btcBalance = await cryptoClient.getBalance("BTC");
+
+  return {
+    ton: tonBalance.available,
+    usdt: usdtBalance.available,
+    btc: btcBalance.available,
+  };
+}
+
 handleDeposit(bot, depositScene);
 muteUser(bot);
 banUser(bot);
 kickUser(bot);
 deleteMessage(bot);
-whitelistLink(bot);
 setWelcomeMsg(bot);
 setWelcomeImg(bot, setImageScene);
 setKwdRply(bot);
 setAllowedLinks(bot);
 setInappropriateWords(bot);
+deleteInappropriateWord(bot);
+deleteKeyword(bot);
+deleteLink(bot);
 autoManageChat(bot);
 
-// bot.launch();
+bot.launch();
 
-bot.launch({
-  webhook: {
-    // Public domain for webhook; e.g.: example.com
-    domain: webhookDomain,
+// bot.launch({
+//   webhook: {
+//     // Public domain for webhook; e.g.: example.com
+//     domain: webhookDomain,
 
-    // Port to listen on; e.g.: 8080
-    port: port,
+//     // Port to listen on; e.g.: 8080
+//     port: port,
 
-    secretToken: crypto.randomUUID(),
-  },
-});
+//     secretToken: crypto.randomUUID(),
+//   },
+// });
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
