@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
+    "axios": "^1.7.9",
     "crypto-bot-api": "^0.3.3",
     "dotenv": "^16.4.7",
     "telegraf": "^4.16.3"

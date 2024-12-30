@@ -9,7 +9,14 @@ import { kickUser } from "./features/kick.js";
 import { deleteMessage } from "./features/Delete.js";
 import { autoManageChat } from "./features/autoManage.js";
 import { whitelistLink } from "./features/links.js";
-import { isCreator } from "./utils.js";
+import { setWelcomeMsg } from "./features/setWelcomeMessage.js";
+import {
+  getTelegramDataByChatId,
+  getTelegramDataByChatIdSingle,
+  insertChat,
+} from "./supabaseAPI.js";
+import { setWelcomeImg } from "./features/setWelcomeImage.js";
+import { setKwdRply } from "./features/setKeywordReplies.js";
 
 dotenv.config();
 
@@ -28,11 +35,28 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 const depositScene = new BaseScene("deposit");
 const shareScene = new BaseScene("share");
+const setImageScene = new BaseScene("setImage");
 
-const stage = new Stage([depositScene, shareScene]);
+const stage = new Stage([depositScene, shareScene, setImageScene]);
 
 bot.use(session());
 bot.use(stage.middleware());
+
+bot.use(async (ctx, next) => {
+  const chatId = ctx.chat.id;
+  if (ctx.chat.type !== "private") {
+    try {
+      const chat = await getTelegramDataByChatId(chatId);
+      if (chat.length == 0) {
+        await insertChat(chatId);
+      }
+
+      await next();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+});
 
 bot.telegram.setMyCommands([
   { command: "start", description: "mini app button" },
@@ -51,6 +75,18 @@ bot.telegram.setMyCommands([
   {
     command: "whitelist",
     description: "whitelist a domain",
+  },
+  {
+    command: "setmessage",
+    description: "set welcome message",
+  },
+  {
+    command: "setimage",
+    description: "set welcome image",
+  },
+  {
+    command: "setkeyword",
+    description: "set keyword and reply content",
   },
 ]);
 
@@ -115,18 +151,25 @@ bot.on("new_chat_members", async (ctx) => {
     const newMembers = ctx.message.new_chat_members;
     // Auto-delete the join/leave message
     await ctx.deleteMessage(ctx.message.message_id);
+    const chatData = await getTelegramDataByChatIdSingle(ctx.chat.id);
     for (const member of newMembers) {
-      const welcomeMessage = `🎉 Welcome, ${
-        member.first_name || "Friend"
-      }! We're glad to have you here.`;
+      const welcomeMessage = chatData.message
+        ? `${member.first_name}, \n${chatData.message}`
+        : `🎉 Welcome, ${
+            member.first_name || "Friend"
+          }! We're glad to have you here.`;
 
       // Send the welcome image with the caption
-      await ctx.replyWithPhoto(
-        {
-          url: "https://rose-gothic-goose-655.mypinata.cloud/ipfs/QmVgzd5JGFuNKrv18eena3FqjP6hPhcNJMoC37mZm26MYn",
-        },
-        { caption: welcomeMessage }
-      );
+      if (chatData.imageUrl) {
+        await ctx.replyWithPhoto(
+          {
+            url: chatData.imageUrl,
+          },
+          { caption: welcomeMessage }
+        );
+      } else {
+        await ctx.reply(welcomeMessage);
+      }
     }
   } catch (error) {
     console.error("Error handling new chat members:", error);
@@ -146,6 +189,9 @@ banUser(bot);
 kickUser(bot);
 deleteMessage(bot);
 whitelistLink(bot);
+setWelcomeMsg(bot);
+setWelcomeImg(bot, setImageScene);
+setKwdRply(bot);
 autoManageChat(bot);
 
 // bot.launch();
