@@ -198,19 +198,19 @@ setAllowedLinks(bot);
 setInappropriateWords(bot);
 autoManageChat(bot);
 
-bot.launch();
+// bot.launch();
 
-// bot.launch({
-//   webhook: {
-//     // Public domain for webhook; e.g.: example.com
-//     domain: webhookDomain,
+bot.launch({
+  webhook: {
+    // Public domain for webhook; e.g.: example.com
+    domain: webhookDomain,
 
-//     // Port to listen on; e.g.: 8080
-//     port: port,
+    // Port to listen on; e.g.: 8080
+    port: port,
 
-//     secretToken: crypto.randomUUID(),
-//   },
-// });
+    secretToken: crypto.randomUUID(),
+  },
+});
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
