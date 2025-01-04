@@ -1,10 +1,15 @@
+import { getUserLanguage } from "../supabaseAPI.js";
+import { locale } from "../translations.js";
 import { isAdmin } from "../utils.js";
 
 export function muteUser(bot) {
   // Mute a user
   bot.command("mute", async (ctx) => {
+    const id = ctx.from.id;
+    const lang = (await getUserLanguage(id)) || "en";
+    const t = locale[lang];
     if (!(await isAdmin(ctx))) {
-      return ctx.reply("❌ Only admins can use this command!");
+      return ctx.reply(`❌ ${t.admin_warning}`);
     }
 
     const args = ctx.message.text.split(" ");
@@ -12,9 +17,7 @@ export function muteUser(bot) {
     const duration = parseInt(args[1]) || 60; // Default: 60 seconds
 
     if (!userId) {
-      return ctx.reply(
-        "⚠️ Reply to the user you want to mute and specify a duration in seconds (optional)."
-      );
+      return ctx.reply(`⚠️ ${t.mute.warning}`);
     }
 
     try {
@@ -23,10 +26,10 @@ export function muteUser(bot) {
         permissions: { can_send_messages: false },
         until_date: untilDate,
       });
-      ctx.reply(`✅ User has been muted for ${duration} seconds.`);
+      ctx.reply(`✅ ${t.mute.success.msg1} ${duration} ${t.mute.success.msg2}`);
     } catch (error) {
       console.error("Mute Error:", error);
-      ctx.reply("❌ Failed to mute the user.");
+      ctx.reply(`❌ ${t.mute.failed}`);
     }
   });
 }

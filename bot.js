@@ -1,4 +1,4 @@
-import { Telegraf, session, Scenes } from "telegraf";
+import { Telegraf, session, Scenes, Markup } from "telegraf";
 import CryptoBotApi from "crypto-bot-api";
 import dotenv from "dotenv";
 
@@ -17,13 +17,16 @@ import { setWelcomeMsg } from "./features/setWelcomeMessage.js";
 import {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
+  getUserLanguage,
   insertChat,
+  updateLanguage,
 } from "./supabaseAPI.js";
 import { setWelcomeImg } from "./features/setWelcomeImage.js";
 import { setKwdRply } from "./features/setKeywordReplies.js";
 import { setAllowedLinks } from "./features/setAllowedLinks.js";
 import { setInappropriateWords } from "./features/setInappropriateWords.js";
 import { botCommands } from "./commands.js";
+import { lang, locale } from "./translations.js";
 
 dotenv.config();
 
@@ -46,6 +49,8 @@ const setImageScene = new BaseScene("setImage");
 
 const stage = new Stage([depositScene, shareScene, setImageScene]);
 
+export const userPrefrences = new Map();
+
 bot.use(session());
 bot.use(stage.middleware());
 
@@ -62,49 +67,63 @@ bot.use(async (ctx, next) => {
     } catch (error) {
       console.log(error);
     }
+  } else {
+    await next();
   }
 });
 
 botCommands(bot);
 
+async function startMsg(lang) {
+  const { ton, usdt, btc } = await balances();
+  const t = locale[lang];
+
+  return `<strong>🧧${t.welcome}</strong>
+
+<strong>${t.balance}:</strong>
+
+<strong>TON:</strong> ${ton}
+<strong>USDT:</strong> ${usdt}
+<strong>BTC:</strong> ${btc}
+      `;
+}
+
+function startKeys(lang) {
+  const t = locale[lang];
+  return [
+    [
+      {
+        text: t.red,
+        web_app: { url: "https://redcard.vercel.app" },
+      },
+      {
+        text: t.deposit,
+        callback_data: "deposit",
+      },
+    ],
+    [{ text: locale[lang].lang, callback_data: "lang" }],
+  ];
+}
+
 bot.start(async (ctx) => {
   if (ctx.chat.type !== "private") return;
-
+  const userId = ctx.from.id;
   try {
+    const lang = (await getUserLanguage(userId)) || "en";
     const text = ctx.message.text.split(" ");
     if (text[1] == "deposit") {
       ctx.scene.enter("deposit");
       return;
     }
-    const { ton, usdt, btc } = await balances();
-    await ctx.reply(
-      `<strong>🧧Welcome to red cards</strong>
 
-<strong>Wallet balance:</strong>
-
-<strong>TON:</strong> ${ton}
-<strong>USDT:</strong> ${usdt}
-<strong>BTC:</strong> ${btc}
-      `,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "🧧Redcards",
-                web_app: { url: "https://redcard.vercel.app" },
-              },
-              {
-                text: "Deposit",
-                callback_data: "deposit",
-              },
-            ],
-          ],
-          resize_keyboard: true,
-        },
-        parse_mode: "HTML",
-      }
-    );
+    const msg = await startMsg(lang);
+    await ctx.reply(msg, {
+      reply_markup: {
+        inline_keyboard: startKeys(lang),
+        resize_keyboard: true,
+      },
+      parse_mode: "HTML",
+    });
   } catch (error) {
     console.log(error);
   }
@@ -141,10 +160,45 @@ bot.on("new_chat_members", async (ctx) => {
   }
 });
 
-bot.on("callback_query", (ctx) => {
+bot.on("callback_query", async (ctx) => {
   const callback_data = ctx.callbackQuery.data;
-  if (callback_data == "deposit") {
-    ctx.scene.enter("deposit");
+  const userId = ctx.from.id;
+  const selectedLang = userPrefrences.get(userId) || "en";
+  const t = locale[selectedLang];
+  switch (callback_data) {
+    case "deposit":
+      ctx.scene.enter("deposit");
+      break;
+
+    case "lang":
+      ctx.editMessageText(
+        t.select,
+
+        Markup.inlineKeyboard([
+          Markup.button.callback(lang.english, "en"),
+          Markup.button.callback(lang.chinese, "zh"),
+        ])
+      );
+      break;
+    case "en":
+      userPrefrences.set(userId, "en");
+      updateLanguage(userId, "en").catch((err) => console.log(err));
+      const msg_en = await startMsg("en");
+
+      ctx.editMessageText(msg_en, {
+        reply_markup: { inline_keyboard: startKeys("en") },
+        parse_mode: "HTML",
+      });
+    case "zh":
+      userPrefrences.set(userId, "zh");
+      updateLanguage(userId, "zh").catch((err) => console.log(err));
+      const msg_zh = await startMsg("zh");
+      ctx.editMessageText(msg_zh, {
+        reply_markup: { inline_keyboard: startKeys("zh") },
+        parse_mode: "HTML",
+      });
+    default:
+      break;
   }
 });
 
@@ -175,7 +229,7 @@ deleteKeyword(bot);
 deleteLink(bot);
 autoManageChat(bot);
 
-// bot.launch();
+// bot.launch(() => console.log("Bot online!"));
 
 bot.launch({
   webhook: {

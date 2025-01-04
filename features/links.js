@@ -1,4 +1,8 @@
-import { getTelegramDataByChatIdSingle } from "../supabaseAPI.js";
+import {
+  getTelegramDataByChatIdSingle,
+  getUserLanguage,
+} from "../supabaseAPI.js";
+import { locale } from "../translations.js";
 
 // const whitelistedLinks = ["example.com", "trusted-site.com"];
 
@@ -6,6 +10,9 @@ export async function autoCleanLinks(ctx) {
   const messageText = ctx.message.text.toLowerCase();
   const userId = ctx.message.from.id;
   const chatId = ctx.chat.id;
+
+  const lang = (await getUserLanguage(userId)) || "en";
+  const t = locale[lang];
 
   // Detect links in the message
   const linkPattern = /(https?:\/\/)?(www\.)?\S+\.\S+/g;
@@ -38,9 +45,7 @@ export async function autoCleanLinks(ctx) {
         await ctx.telegram.deleteMessage(chatId, ctx.message.message_id);
 
         // Notify the user
-        const notification = await ctx.reply(
-          `⚠️ Links are not allowed unless whitelisted. Your message was deleted.\nAdmins can approve the link if necessary.`
-        );
+        const notification = await ctx.reply(`⚠️ ${t.link_warning}`);
 
         // Auto-delete notification after 30 seconds
         setTimeout(() => ctx.deleteMessage(notification.message_id), 30000);

@@ -204,6 +204,39 @@ async function removeKeywordReply(chatId, keyword) {
   }
 }
 
+async function updateLanguage(userId, lang) {
+  const { data: language, error } = await supabase
+    .from("language")
+    .select("*")
+    .eq("userId", userId);
+
+  if (error) throw new Error(error.message);
+
+  if (language.length == 0) {
+    // insert
+    const { error } = await supabase
+      .from("language")
+      .insert([{ userId, lang }])
+      .select();
+
+    if (error) throw new Error(error.message);
+  }
+}
+
+async function getUserLanguage(userId) {
+  const { data: language, error } = await supabase
+    .from("language")
+    .select("*")
+    .eq("userId", userId);
+
+  if (error) return "";
+  if (language.length == 0) {
+    return "";
+  }
+
+  return language[0].lang;
+}
+
 export {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
@@ -216,4 +249,6 @@ export {
   removeInappropriateWord,
   removeKeywordReply,
   removeLink,
+  updateLanguage,
+  getUserLanguage,
 };

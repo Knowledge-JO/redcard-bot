@@ -1,18 +1,18 @@
-import { cryptoClient } from "../bot.js";
-import { isCreator } from "../utils.js";
+import { cryptoClient, userPrefrences } from "../bot.js";
+import { locale } from "../translations.js";
 
 function handleDeposit(bot, depositScene) {
   bot.command("deposit", async (ctx) => {
-    if (!(await isCreator(ctx))) {
-      return ctx.reply("❌ Only admins can use this command!");
-    }
+    if (ctx.chat.type !== "private") return;
     ctx.scene.enter("deposit");
   });
 
   depositScene.enter((ctx) => {
     // ctx.reply("Please enter amount you want to deposit: ");
-
-    ctx.reply("Please select an asset", {
+    const userId = ctx.from.id;
+    const lang = userPrefrences.get(userId) || "en";
+    const t = locale[lang];
+    ctx.reply(t.asset, {
       reply_markup: {
         inline_keyboard: [
           [{ text: "BTC", callback_data: "BTC" }],
@@ -29,44 +29,55 @@ function handleDeposit(bot, depositScene) {
 
     const text = ctx.message.text;
 
-    if (text.toLowerCase() == "end") {
-      ctx.reply("cancelled.");
-      ctx.scene.leave();
-      return;
-    }
+    const userId = ctx.from.id;
+    const lang = userPrefrences.get(userId) || "en";
+    const t = locale[lang];
 
     if (state == "create") {
       const amount = parseFloat(ctx.message.text);
       if (isNaN(amount) || amount <= 0) {
-        ctx.reply("Please enter a valid amount");
+        ctx.reply(t.invalid);
       } else {
         // perform deposit
-        await makePayment(ctx, asset, amount);
-        ctx.scene.state = null;
+        await makePayment(ctx, asset, amount, t);
+        ctx.session.currentState = null;
         ctx.scene.leave();
       }
     } else {
-      ctx.reply("Please select an asset");
+      console.log(t.asset);
+      ctx.reply(t.asset);
     }
   });
 
   depositScene.on("callback_query", (ctx) => {
     const query = ctx.callbackQuery.data;
-    ctx.reply("Please enter amount you want to deposit: ");
+    const userId = ctx.from.id;
+    const lang = userPrefrences.get(userId) || "en";
+    const t = locale[lang];
+    ctx.reply(`${t.amount}:`);
     ctx.session.asset = query;
     ctx.session.currentState = "create";
   });
+
+  depositScene.command("exit", (ctx) => {
+    const id = ctx.from.id;
+    const lang = userPrefrences.get(id) || "en";
+    const t = locale[lang];
+    ctx.reply(t.canceled);
+    ctx.session.currentState = null;
+    ctx.session.asset = null;
+    ctx.scene.leave();
+    return;
+  });
 }
 
-async function makePayment(ctx, asset, amount) {
+async function makePayment(ctx, asset, amount, t) {
   try {
     const invoice = await cryptoClient.createInvoice({
       asset,
       amount,
     });
-    ctx.reply(
-      `Invoice created successfully, please click on the link and make deposit. \n \n ${invoice.botPayUrl}`
-    );
+    ctx.reply(`${t.invoice} \n \n ${invoice.botPayUrl}`);
   } catch (error) {
     ctx.reply(`${error}`);
   }

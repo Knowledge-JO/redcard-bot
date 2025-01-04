@@ -28,6 +28,7 @@ export function autoManageChat(bot) {
 
   // Filter and delete inappropriate messages automatically
   bot.on("text", async (ctx) => {
+    if (ctx.chat.type == "private") return;
     const messageText = ctx.message.text.toLowerCase();
 
     const userId = ctx.message.from.id;

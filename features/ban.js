@@ -1,10 +1,15 @@
+import { getUserLanguage } from "../supabaseAPI.js";
+import { locale } from "../translations.js";
 import { isAdmin } from "../utils.js";
 
 export function banUser(bot) {
   // Ban a user
   bot.command("ban", async (ctx) => {
+    const id = ctx.from.id;
+    const lang = (await getUserLanguage(id)) || "en";
+    const t = locale[lang];
     if (!(await isAdmin(ctx))) {
-      return ctx.reply("❌ Only admins can use this command!");
+      return ctx.reply(`❌ ${t.admin_warning}`);
     }
 
     const args = ctx.message.text.split(" ");
@@ -12,9 +17,7 @@ export function banUser(bot) {
     const duration = parseInt(args[1]) || 0; // Default: Permanent ban
 
     if (!userId) {
-      return ctx.reply(
-        "⚠️ Reply to the user you want to ban and specify a duration in seconds (optional)."
-      );
+      return ctx.reply(`⚠️ ${t.ban_warning}`);
     }
 
     try {
@@ -23,13 +26,15 @@ export function banUser(bot) {
         until_date: untilDate,
       });
       ctx.reply(
-        `✅ User has been banned ${
-          duration > 0 ? `for ${duration} seconds.` : "permanently."
+        `✅ ${t.banned.msg1} ${
+          duration > 0
+            ? `${t.banned.msg2} ${duration} ${t.banned.msg3}.`
+            : `${t.banned.alt}`
         }`
       );
     } catch (error) {
       console.error("Ban Error:", error);
-      ctx.reply("❌ Failed to ban the user.");
+      ctx.reply(`❌ ${t.ban_failed}`);
     }
   });
 }
