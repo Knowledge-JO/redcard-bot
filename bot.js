@@ -189,6 +189,7 @@ bot.on("callback_query", async (ctx) => {
         reply_markup: { inline_keyboard: startKeys("en") },
         parse_mode: "HTML",
       });
+      break
     case "zh":
       userPrefrences.set(userId, "zh");
       updateLanguage(userId, "zh").catch((err) => console.log(err));
@@ -197,6 +198,7 @@ bot.on("callback_query", async (ctx) => {
         reply_markup: { inline_keyboard: startKeys("zh") },
         parse_mode: "HTML",
       });
+      break
     default:
       break;
   }
