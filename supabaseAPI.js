@@ -252,8 +252,11 @@ async function updateLanguage(userId, lang) {
 
     if (error) throw new Error(error.message);
   } else {
-     const {error: updateError} = await supabase.from("language").update({lang}).eq("userId", userId)
-     if(updateError) throw new Error(updateError.message)
+    const { error: updateError } = await supabase
+      .from("language")
+      .update({ lang })
+      .eq("userId", userId);
+    if (updateError) throw new Error(updateError.message);
   }
 }
 
