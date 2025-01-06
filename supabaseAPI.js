@@ -26,10 +26,10 @@ async function getTelegramDataByChatIdSingle(chatId) {
   return telegram;
 }
 
-async function insertChat(chatId) {
+async function insertChat(chatId, creatorId, adminIds) {
   const { data, error } = await supabase
     .from("telegram")
-    .insert([{ chatId }])
+    .insert([{ chatId, creatorId, adminIds }])
     .select()
     .single();
 
@@ -38,6 +38,37 @@ async function insertChat(chatId) {
   }
 
   return data;
+}
+
+async function updateChatAdmins(chatId, adminId, promote = false) {
+  const data = await getTelegramDataByChatIdSingle(chatId);
+  if (data) {
+    const admins = data.adminIds;
+    let query = supabase.from("telegram");
+    if (promote) {
+      const { error } = await query
+        .update({
+          adminIds: [...admins, adminId],
+        })
+        .eq("chatId", chatId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } else {
+      // demote
+      const newAdmins = admins.filter((admin) => admin !== adminId);
+      const { error } = await query
+        .update({
+          adminIds: newAdmins,
+        })
+        .eq("chatId", chatId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+  }
 }
 
 async function updateWelcomeMessage(chatId, message) {
@@ -251,4 +282,5 @@ export {
   removeLink,
   updateLanguage,
   getUserLanguage,
+  updateChatAdmins,
 };

@@ -19,6 +19,7 @@ import {
   getTelegramDataByChatIdSingle,
   getUserLanguage,
   insertChat,
+  updateChatAdmins,
   updateLanguage,
 } from "./supabaseAPI.js";
 import { setWelcomeImg } from "./features/setWelcomeImage.js";
@@ -54,23 +55,23 @@ export const userPrefrences = new Map();
 bot.use(session());
 bot.use(stage.middleware());
 
-bot.use(async (ctx, next) => {
-  const chatId = ctx.chat.id;
-  if (ctx.chat.type !== "private") {
-    try {
-      const chat = await getTelegramDataByChatId(chatId);
-      if (chat.length == 0) {
-        await insertChat(chatId);
-      }
+// bot.use(async (ctx, next) => {
+//   const chatId = ctx.chat.id;
+//   if (ctx.chat.type !== "private") {
+//     try {
+//       const chat = await getTelegramDataByChatId(chatId);
+//       if (chat.length == 0) {
+//         await insertChat(chatId);
+//       }
 
-      await next();
-    } catch (error) {
-      console.log(error);
-    }
-  } else {
-    await next();
-  }
-});
+//       await next();
+//     } catch (error) {
+//       console.log(error);
+//     }
+//   } else {
+//     await next();
+//   }
+// });
 
 botCommands(bot);
 
@@ -101,7 +102,10 @@ function startKeys(lang) {
         callback_data: "deposit",
       },
     ],
-    [{ text: locale[lang].lang, callback_data: "lang" }],
+    [
+      { text: t.lang, callback_data: "lang" },
+      { text: t.config, web_app: { url: "https://redcard.vercel.app/config" } },
+    ],
   ];
 }
 
@@ -133,30 +137,80 @@ bot.start(async (ctx) => {
 bot.on("new_chat_members", async (ctx) => {
   try {
     const newMembers = ctx.message.new_chat_members;
-    // Auto-delete the join/leave message
-    await ctx.deleteMessage(ctx.message.message_id);
-    const chatData = await getTelegramDataByChatIdSingle(ctx.chat.id);
-    for (const member of newMembers) {
-      const welcomeMessage = chatData.message
-        ? `${member.first_name}, \n${chatData.message}`
-        : `🎉 Welcome, ${
-            member.first_name || "Friend"
-          }! We're glad to have you here.`;
+    const chatId = ctx.chat.id;
+    console.log("New member added");
 
-      // Send the welcome image with the caption
-      if (chatData.imageUrl) {
-        await ctx.replyWithPhoto(
-          {
-            url: chatData.imageUrl,
-          },
-          { caption: welcomeMessage }
-        );
+    const chat = await getTelegramDataByChatId(chatId);
+    const chatData = chat.length > 0 ? chat.at(0) : undefined;
+    for (const member of newMembers) {
+      if (member.is_bot && member.id == bot.botInfo.id) {
+        console.log("Bot added", bot.botInfo.id);
+        console.log(chatData, chat);
+        if (!chatData) {
+          // add new chat
+          // Get the list of admins
+          const admins = await ctx.getChatAdministrators();
+          // Separate the creator and other admins
+          const creator = admins.find((admin) => admin.status === "creator");
+          const otherAdmins = admins
+            .filter((admin) => admin.status === "administrator")
+            .map((otherAdmin) => otherAdmin.user.id);
+
+          await insertChat(chatId, creator?.user.id || null, otherAdmins);
+        }
       } else {
-        await ctx.reply(welcomeMessage);
+        const welcomeMessage = chatData.message
+          ? `${member.first_name}, \n${chatData.message}`
+          : `🎉 Welcome, ${
+              member.first_name || "Friend"
+            }! We're glad to have you here.`;
+
+        // Send the welcome image with the caption
+        if (chatData.imageUrl) {
+          await ctx.replyWithPhoto(
+            {
+              url: chatData.imageUrl,
+            },
+            { caption: welcomeMessage }
+          );
+        } else {
+          await ctx.reply(welcomeMessage);
+        }
       }
     }
+    // Auto-delete the join/leave message
+    await ctx.deleteMessage(ctx.message.message_id);
   } catch (error) {
     console.error("Error handling new chat members:", error);
+  }
+});
+
+bot.on("chat_member", async (ctx) => {
+  const chatMemberUpdate = ctx.chatMember;
+  console.log("chat member");
+  // Check if the user was promoted to admin
+  const oldStatus = chatMemberUpdate.old_chat_member.status;
+  const newStatus = chatMemberUpdate.new_chat_member.status;
+
+  // If the old status is "member" and the new status is "administrator", they were promoted
+  if (oldStatus == "member" && newStatus == "administrator") {
+    const promotedUser = chatMemberUpdate.new_chat_member.user;
+    console.log("promoted user", promotedUser.first_name);
+    // update admins
+    try {
+      await updateChatAdmins(ctx.chat.id, promotedUser.id, true); // promote
+    } catch (error) {
+      console.error("Failed to update admins", error);
+    }
+  }
+  if (oldStatus == "administrator" && newStatus == "member") {
+    const demotedUser = chatMemberUpdate.new_chat_member.user;
+    console.log("demoted user", demotedUser.first_name);
+    try {
+      await updateChatAdmins(ctx.chat.id, demotedUser.id, false); // demote
+    } catch (error) {
+      console.error("Failed to update admins", error);
+    }
   }
 });
 
@@ -229,19 +283,19 @@ deleteKeyword(bot);
 deleteLink(bot);
 autoManageChat(bot);
 
-// bot.launch(() => console.log("Bot online!"));
+bot.launch(() => console.log("Bot online!"));
 
-bot.launch({
-  webhook: {
-    // Public domain for webhook; e.g.: example.com
-    domain: webhookDomain,
+// bot.launch({
+//   webhook: {
+//     // Public domain for webhook; e.g.: example.com
+//     domain: webhookDomain,
 
-    // Port to listen on; e.g.: 8080
-    port: port,
+//     // Port to listen on; e.g.: 8080
+//     port: port,
 
-    secretToken: crypto.randomUUID(),
-  },
-});
+//     secretToken: crypto.randomUUID(),
+//   },
+// });
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));

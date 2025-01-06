@@ -93,6 +93,7 @@ export const locale = {
       failed: "Failed to update welcome message.",
     },
     canceled: "Canceled.",
+    config: "Config",
   },
 
   zh: {
@@ -185,6 +186,7 @@ export const locale = {
       failed: "无法更新欢迎消息。",
     },
     canceled: "取消。",
+    config: "配置",
   },
 };
 
