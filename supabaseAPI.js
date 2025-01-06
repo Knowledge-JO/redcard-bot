@@ -26,10 +26,10 @@ async function getTelegramDataByChatIdSingle(chatId) {
   return telegram;
 }
 
-async function insertChat(chatId, creatorId, adminIds) {
+async function insertChat(chatId, creatorId, adminIds, chatName) {
   const { data, error } = await supabase
     .from("telegram")
-    .insert([{ chatId, creatorId, adminIds }])
+    .insert([{ chatId, creatorId, adminIds, chatName }])
     .select()
     .single();
 

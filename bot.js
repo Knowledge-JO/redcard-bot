@@ -155,8 +155,13 @@ bot.on("new_chat_members", async (ctx) => {
           const otherAdmins = admins
             .filter((admin) => admin.status === "administrator")
             .map((otherAdmin) => otherAdmin.user.id);
-
-          await insertChat(chatId, creator?.user.id || null, otherAdmins);
+          const chatName = ctx.chat.title;
+          await insertChat(
+            chatId,
+            creator?.user.id || null,
+            otherAdmins,
+            chatName
+          );
         }
       } else {
         const welcomeMessage = chatData.message
@@ -243,7 +248,7 @@ bot.on("callback_query", async (ctx) => {
         reply_markup: { inline_keyboard: startKeys("en") },
         parse_mode: "HTML",
       });
-      break
+      break;
     case "zh":
       userPrefrences.set(userId, "zh");
       updateLanguage(userId, "zh").catch((err) => console.log(err));
@@ -252,7 +257,7 @@ bot.on("callback_query", async (ctx) => {
         reply_markup: { inline_keyboard: startKeys("zh") },
         parse_mode: "HTML",
       });
-      break
+      break;
     default:
       break;
   }
@@ -285,19 +290,19 @@ deleteKeyword(bot);
 deleteLink(bot);
 autoManageChat(bot);
 
-bot.launch(() => console.log("Bot online!"));
+//bot.launch(() => console.log("Bot online!"));
 
-// bot.launch({
-//   webhook: {
-//     // Public domain for webhook; e.g.: example.com
-//     domain: webhookDomain,
+bot.launch({
+  webhook: {
+    // Public domain for webhook; e.g.: example.com
+    domain: webhookDomain,
 
-//     // Port to listen on; e.g.: 8080
-//     port: port,
+    // Port to listen on; e.g.: 8080
+    port: port,
 
-//     secretToken: crypto.randomUUID(),
-//   },
-// });
+    secretToken: crypto.randomUUID(),
+  },
+});
 
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
