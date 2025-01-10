@@ -98,7 +98,7 @@ export function deleteInappropriateWord(bot) {
 
     try {
       await removeInappropriateWord(chatId, word);
-      ctx.reply();
+      ctx.reply(t.delete.word.success);
     } catch (error) {
       console.log(error);
       ctx.reply(t.delete.word.failed);
