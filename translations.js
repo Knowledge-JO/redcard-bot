@@ -94,6 +94,16 @@ export const locale = {
     },
     canceled: "Canceled.",
     config: "Config",
+    set_api_key:
+      "Please set your API key to procede. You can get the api key from",
+    set_api_btn: "Set API key",
+    api_error: "Invalid api key provided",
+    update_api_btn: "Update API key",
+
+    prompt_api_keyword: "Please send the Api key",
+    prompt_api_error: "Please provide a valid api key",
+    prompt_api_set: "Key set",
+    prompt_api_updated: "Key updated",
   },
 
   zh: {
@@ -187,6 +197,15 @@ export const locale = {
     },
     canceled: "取消。",
     config: "配置",
+    set_api_key: "请设置您的API密钥以继续。您可以从",
+    set_api_btn: "设置API密钥",
+    api_error: "提供的API密钥无效",
+    update_api_btn: "更新API密钥",
+
+    prompt_api_keyword: "请发送Api密钥",
+    prompt_api_error: "请提供有效的api密钥",
+    prompt_api_set: "关键字设置",
+    prompt_api_updated: "关键字更新",
   },
 };
 

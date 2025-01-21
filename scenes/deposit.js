@@ -1,4 +1,5 @@
 import { cryptoClient, userPrefrences } from "../bot.js";
+import { getUserApiKey, getUserLanguage } from "../supabaseAPI.js";
 import { locale } from "../translations.js";
 
 function handleDeposit(bot, depositScene) {
@@ -7,10 +8,9 @@ function handleDeposit(bot, depositScene) {
     ctx.scene.enter("deposit");
   });
 
-  depositScene.enter((ctx) => {
-    // ctx.reply("Please enter amount you want to deposit: ");
+  depositScene.enter(async (ctx) => {
     const userId = ctx.from.id;
-    const lang = userPrefrences.get(userId) || "en";
+    const lang = (await getUserLanguage(userId)) || "en";
     const t = locale[lang];
     ctx.reply(t.asset, {
       reply_markup: {
@@ -30,7 +30,7 @@ function handleDeposit(bot, depositScene) {
     const text = ctx.message.text;
 
     const userId = ctx.from.id;
-    const lang = userPrefrences.get(userId) || "en";
+    const lang = (await getUserLanguage(userId)) || "en";
     const t = locale[lang];
 
     if (state == "create") {
@@ -49,19 +49,19 @@ function handleDeposit(bot, depositScene) {
     }
   });
 
-  depositScene.on("callback_query", (ctx) => {
+  depositScene.on("callback_query", async (ctx) => {
     const query = ctx.callbackQuery.data;
     const userId = ctx.from.id;
-    const lang = userPrefrences.get(userId) || "en";
+    const lang = (await getUserLanguage(userId)) || "en";
     const t = locale[lang];
     ctx.reply(`${t.amount}:`);
     ctx.session.asset = query;
     ctx.session.currentState = "create";
   });
 
-  depositScene.command("exit", (ctx) => {
+  depositScene.command("exit", async (ctx) => {
     const id = ctx.from.id;
-    const lang = userPrefrences.get(id) || "en";
+    const lang = (await getUserLanguage(userId)) || "en";
     const t = locale[lang];
     ctx.reply(t.canceled);
     ctx.session.currentState = null;
@@ -73,7 +73,9 @@ function handleDeposit(bot, depositScene) {
 
 async function makePayment(ctx, asset, amount, t) {
   try {
-    const invoice = await cryptoClient.createInvoice({
+    const apiKey = await getUserApiKey(ctx.from.id);
+    const client = cryptoClient(apiKey);
+    const invoice = await client.createInvoice({
       asset,
       amount,
     });

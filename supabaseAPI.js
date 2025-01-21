@@ -274,6 +274,33 @@ async function getUserLanguage(userId) {
   return language[0].lang;
 }
 
+async function getUserApiKey(userId) {
+  const { data, error } = await supabase
+    .from("apiKeys")
+    .select("*")
+    .eq("userId", userId)
+    .single();
+
+  if (error) return "";
+
+  return data.apiKey;
+}
+
+async function setUserApiKey(userId, apiKey) {
+  const { error } = await supabase.from("apiKeys").insert([{ userId, apiKey }]);
+
+  if (error) throw new Error(error.message);
+}
+
+async function updateApiKey(userId, apiKey) {
+  const { error } = await supabase
+    .from("apiKeys")
+    .update({ apiKey })
+    .eq("userId", userId);
+
+  if (error) throw new error(error.message);
+}
+
 export {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
@@ -289,4 +316,7 @@ export {
   updateLanguage,
   getUserLanguage,
   updateChatAdmins,
+  getUserApiKey,
+  setUserApiKey,
+  updateApiKey,
 };

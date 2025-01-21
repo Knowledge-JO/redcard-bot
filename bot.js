@@ -17,6 +17,7 @@ import { setWelcomeMsg } from "./features/setWelcomeMessage.js";
 import {
   getTelegramDataByChatId,
   getTelegramDataByChatIdSingle,
+  getUserApiKey,
   getUserLanguage,
   insertChat,
   updateChatAdmins,
@@ -26,19 +27,15 @@ import { setWelcomeImg } from "./features/setWelcomeImage.js";
 import { setKwdRply } from "./features/setKeywordReplies.js";
 import { setAllowedLinks } from "./features/setAllowedLinks.js";
 import { setInappropriateWords } from "./features/setInappropriateWords.js";
+import { handleSetApiKey } from "./scenes/setApiKey.js";
 import { botCommands } from "./commands.js";
 import { lang, locale } from "./translations.js";
+import { handleUpdateApiKey } from "./scenes/updateApiKey.js";
 
 dotenv.config();
 
 const webhookDomain = "https://redcard-bot.onrender.com";
-const endpoint = "https://testnet-pay.crypt.bot/api";
 const port = process.env.PORT || 8080;
-
-export const cryptoClient = new CryptoBotApi(
-  process.env.API_TOKEN || "",
-  endpoint
-);
 
 const { BaseScene, Stage } = Scenes;
 
@@ -47,47 +44,28 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const depositScene = new BaseScene("deposit");
 const shareScene = new BaseScene("share");
 const setImageScene = new BaseScene("setImage");
+const setApiKeyScene = new BaseScene("setApiKey");
+const updateApiKeyScene = new BaseScene("updateApiKey");
 
-const stage = new Stage([depositScene, shareScene, setImageScene]);
+const stage = new Stage([
+  depositScene,
+  shareScene,
+  setImageScene,
+  setApiKeyScene,
+  updateApiKeyScene,
+]);
 
 export const userPrefrences = new Map();
 
 bot.use(session());
 bot.use(stage.middleware());
 
-// bot.use(async (ctx, next) => {
-//   const chatId = ctx.chat.id;
-//   if (ctx.chat.type !== "private") {
-//     try {
-//       const chat = await getTelegramDataByChatId(chatId);
-//       if (chat.length == 0) {
-//         await insertChat(chatId);
-//       }
-
-//       await next();
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   } else {
-//     await next();
-//   }
-// });
-
 botCommands(bot);
 
-async function startMsg(lang) {
-  const { ton, usdt, btc } = await balances();
-  const t = locale[lang];
-
-  return `<strong>🧧${t.welcome}</strong>
-
-<strong>${t.balance}:</strong>
-
-<strong>TON:</strong> ${ton}
-<strong>USDT:</strong> ${usdt}
-<strong>BTC:</strong> ${btc}
-      `;
-}
+export const cryptoClient = function cryptoClient(key) {
+  const endpoint = "https://testnet-pay.crypt.bot/api";
+  return new CryptoBotApi(key, endpoint);
+};
 
 function startKeys(lang) {
   const t = locale[lang];
@@ -106,6 +84,7 @@ function startKeys(lang) {
       { text: t.lang, callback_data: "lang" },
       { text: t.config, web_app: { url: "https://redcard.vercel.app/config" } },
     ],
+    [{ text: t.update_api_btn, callback_data: "update_key" }],
   ];
 }
 
@@ -115,12 +94,32 @@ bot.start(async (ctx) => {
   try {
     const lang = (await getUserLanguage(userId)) || "en";
     const text = ctx.message.text.split(" ");
+
+    const apiKey = await getUserApiKey(userId);
+
+    const t = locale[lang];
+
+    if (!apiKey) {
+      await ctx.reply(`${t.set_api_key} crypto testnet bot @CryptoTestnetBot`, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: t.set_api_btn, callback_data: "api_key" }],
+          ],
+        },
+      });
+
+      return;
+    }
+
     if (text[1] == "deposit") {
       ctx.scene.enter("deposit");
       return;
     }
 
-    const msg = await startMsg(lang);
+    const client = cryptoClient(apiKey);
+
+    const msg = await startMsg(lang, client);
+
     await ctx.reply(msg, {
       reply_markup: {
         inline_keyboard: startKeys(lang),
@@ -129,9 +128,30 @@ bot.start(async (ctx) => {
       parse_mode: "HTML",
     });
   } catch (error) {
-    console.log(error);
+    if (error.message.includes("API key")) {
+      errorReply(ctx);
+    } else {
+      ctx.reply(error.message);
+    }
   }
 });
+
+async function errorReply(ctx) {
+  const userId = ctx.from.id;
+  try {
+    const lang = (await getUserLanguage(userId)) || "en";
+    const t = locale[lang];
+    ctx.reply(t.api_error, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: t.update_api_btn, callback_data: "update_key" }],
+        ],
+      },
+    });
+  } catch (error) {
+    console.log(error.message);
+  }
+}
 
 // Handle new chat members
 bot.on("new_chat_members", async (ctx) => {
@@ -224,9 +244,18 @@ bot.on("callback_query", async (ctx) => {
   const userId = ctx.from.id;
   const selectedLang = userPrefrences.get(userId) || "en";
   const t = locale[selectedLang];
+  const apiKey = await getUserApiKey(userId);
   switch (callback_data) {
     case "deposit":
       ctx.scene.enter("deposit");
+      break;
+
+    case "api_key":
+      ctx.scene.enter("setApiKey");
+      break;
+
+    case "update_key":
+      ctx.scene.enter("updateApiKey");
       break;
 
     case "lang":
@@ -240,9 +269,10 @@ bot.on("callback_query", async (ctx) => {
       );
       break;
     case "en":
+      const client = cryptoClient(apiKey);
       userPrefrences.set(userId, "en");
       updateLanguage(userId, "en").catch((err) => console.log(err));
-      const msg_en = await startMsg("en");
+      const msg_en = await startMsg("en", client);
 
       ctx.editMessageText(msg_en, {
         reply_markup: { inline_keyboard: startKeys("en") },
@@ -250,9 +280,10 @@ bot.on("callback_query", async (ctx) => {
       });
       break;
     case "zh":
+      const client_zh = cryptoClient(apiKey);
       userPrefrences.set(userId, "zh");
       updateLanguage(userId, "zh").catch((err) => console.log(err));
-      const msg_zh = await startMsg("zh");
+      const msg_zh = await startMsg("zh", client_zh);
       ctx.editMessageText(msg_zh, {
         reply_markup: { inline_keyboard: startKeys("zh") },
         parse_mode: "HTML",
@@ -263,7 +294,21 @@ bot.on("callback_query", async (ctx) => {
   }
 });
 
-async function balances() {
+async function startMsg(lang, cryptoClient) {
+  const { ton, usdt, btc } = await balances(cryptoClient);
+  const t = locale[lang];
+
+  return `<strong>🧧${t.welcome}</strong>
+
+<strong>${t.balance}:</strong>
+
+<strong>TON:</strong> ${ton}
+<strong>USDT:</strong> ${usdt}
+<strong>BTC:</strong> ${btc}
+      `;
+}
+
+async function balances(cryptoClient) {
   const tonBalance = await cryptoClient.getBalance("TON");
   const usdtBalance = await cryptoClient.getBalance("USDT");
   const btcBalance = await cryptoClient.getBalance("BTC");
@@ -282,6 +327,8 @@ kickUser(bot);
 deleteMessage(bot);
 setWelcomeMsg(bot);
 setWelcomeImg(bot, setImageScene);
+handleSetApiKey(bot, setApiKeyScene);
+handleUpdateApiKey(bot, updateApiKeyScene);
 setKwdRply(bot);
 setAllowedLinks(bot);
 setInappropriateWords(bot);
@@ -290,7 +337,7 @@ deleteKeyword(bot);
 deleteLink(bot);
 autoManageChat(bot);
 
-//bot.launch(() => console.log("Bot online!"));
+// bot.launch(() => console.log("Bot online!"));
 
 bot.launch({
   webhook: {
